@@ -7,20 +7,22 @@
 # import json
 import random
 import copy
-import sys
-import os
+import cPickle
+# import sys
+# import os
 # import time
 # import math
 # Third-party libraries
 import numpy as np
-import matplotlib.pyplot as mp
+# import matplotlib.pyplot as mp
+# from matplotlib import animation
 import Net_Util
 import mnist_loader
 
 
-class net_monitor(object):
+class Net_monitor(object):
 	def __init__(self, net, training_data, validation_data):
-		self.net = net
+		# self.net = net
 		validation_inputs_data, validation_results_data = \
 			Net_Util.seperate(validation_data)
 
@@ -59,6 +61,7 @@ class Layer(object):
 		self.regular = None
 
 	def feedforword(self, inputs, softmax=False):
+		""""""
 		if self.pre_layer is None:  # input layer
 			self.inputs = inputs
 			self.outputs = inputs
@@ -110,6 +113,7 @@ class Network(object):
 		self.outputs = None
 
 	def layers_initilization(self, size):
+		"""init every layer of the net"""
 		input_layer = Layer(size[0])
 		pre_layer = input_layer
 		hiden_layers = []
@@ -126,45 +130,50 @@ class Network(object):
 	def feedforword(self, inputs):
 		return self.output_layer.feedforword(inputs)
 
-	def net_training(self, training_data, eta, lamda):
+	def net_training(self, training_data, learning_rate, lamda):
 		"""Training the net work with stochastic gradient descent
 			eta: learning rate
 			lamda: regulation rate
 
 		"""
+		# seperate input and output data
 		input_data, result_data = Net_Util.seperate(training_data)
+		num_sample = len(input_data)
 		# feedforword
 		self.outputs = self.feedforword(input_data)
 		# backpropagation
 		self.input_layer.backpropagation(result_data)
 		# update weights and biases
 		for layer in self.hiden_layers:
-			layer.weights = layer.weights - eta*(np.sum(layer.delta_weights, axis=1)/len(input_data)
-				+ layer.regularization(lamda))  # regularization
-			layer.biases = layer.biases - eta*np.sum(layer.delta_biases, axis=1)/len(input_data)
+			layer.weights = layer.weights - learning_rate*(np.sum(layer.delta_weights, axis=1)/num_sample
+														   + layer.regularization(lamda))  # regularization
+			layer.biases = layer.biases - learning_rate*np.sum(layer.delta_biases, axis=1)/num_sample
 
 
-def SGD(training_data, batch_size, epoch, eta, lamda, validation_data):
+def SGD(net, training_data, batch_size, epoch, learning_rate, lamda, validation_data):
 	n_sample = len(training_data)
-	net = Network([784, 30, 10])
+	# net = Network([784, 30, 10])
 	net_monitors = []
 	for i in xrange(epoch):
 		random.shuffle(training_data)
 		mini_baches = [training_data[k:k+batch_size] for k in xrange(0, n_sample, batch_size)]
 		for mini_batch in mini_baches:
-			net.net_training(mini_batch, eta, lamda)
-		net_monitors.append(copy.deepcopy(net_monitor(net, training_data, validation_data)))
+			net.net_training(mini_batch, learning_rate, lamda)
+		net_monitors.append(copy.deepcopy(Net_monitor(net, training_data, validation_data)))
 
+	# save
+	f = open("/Users/phycsgy/ML/Neural_Network/net_monitor.txt", "wa")
+	cPickle.dump(net_monitors, f)
+	f.close()
 
 if __name__ == "__main__":
 	print 'Neuron Network Test'
 	# load data
 	training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
-	training_data = training_data[0:600]
-	validation_data = validation_data[0:100]
-	test_data = test_data[0:100]
+	training_data = training_data[0:6000]
+	validation_data = validation_data[0:1000]
+	test_data = test_data[0:1000]
 	# init net
 	Net = Network([784, 30, 10])
 	# traning and mornitor
-	SGD(training_data, 30, 30, 0.5, 0.1, validation_data)
-	# visualization
+	SGD(Net, training_data, 30, 30, 0.5, 0.1, validation_data)

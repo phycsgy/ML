@@ -12,7 +12,6 @@ import os
 # Third-party libraries
 import numpy as np
 
-
 class Activation(object):
 	@staticmethod
 	def sigmoid(inputs):
